@@ -23,7 +23,6 @@ worker.onmessage = async function (e) {
             if (success) {
                 console.log('PoW Calculator initialized');
                 status_text.innerText = 'Requesting challenge...';
-
                 requestChallenge();
             }
             else {
@@ -35,7 +34,11 @@ worker.onmessage = async function (e) {
         case 'calculate':
             if (success) {
                 if (result === -1n) {
-                    if (!work_data.run) {
+                    if (!work_data.run) return;
+                    if ((Date.now() - work_data.start_time) > (work_data.expires * 1000)) {
+                        status_text.innerText = 'Unexpected Failure!\nMaybe your device is too slow to solve the PoW ' +
+                            'before it expires?\nPlease try to refresh the page.';
+                        uifail();
                         return;
                     }
                     // not found, continue search
@@ -60,7 +63,6 @@ worker.onmessage = async function (e) {
                 console.log('PoW calculation result:', result);
                 if (resolve) resolve(result);
                 resolve = null;
-                // Hash.value = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(Challenge.value + Nonce.value)))).map(b => b.toString(16).padStart(2, '0')).join('');
             }
             else {
                 work_data.run = false;
@@ -85,14 +87,16 @@ async function requestChallenge() {
             throw `HTTP ${resp.status} ${resp.statusText}`;
         }
         const { challenge, difficulty, expires } = await resp.json();
+        const now = Date.now();
         work_data = {
-            BATCH_SIZE: 1000000n,
+            BATCH_SIZE: 981207n, // Kiana Kaslana's Birthday
             run: false,
             last_nonce: 0n,
             expires: expires,
             difficulty: difficulty,
             challenge: challenge,
-            start_time: Date.now(),
+            start_time: now,
+            last_batch_time: now,
         };
 
         status_text.innerText = 'Calculating...';
@@ -120,7 +124,7 @@ async function requestChallenge() {
             status_image.src = '/web/img/success.webp';
             status_image.classList.remove('r');
             progress.style.display = 'none';
-
+            clearInterval(window.progress_timer_id);
             // submit answer
             work_data.nonce = nonce;
             submitAnswer();
@@ -139,9 +143,13 @@ async function requestChallenge() {
 
 async function submitAnswer() {
     if ((Date.now() - work_data.start_time) > (work_data.expires * 1000)) {
-        status_text.innerText = ('Request has expired. Please refresh the page.');
-        uifail();
+        status_text.innerText = 'Challenge has expired. Requesting new challenge...';
+        setTimeout(() => requestChallenge(), 2000);
         continue_button.hidden = true;
+        status_image.src = '/web/img/loading.webp';
+        status_image.classList.add('r');
+        status_image.style.maxWidth = '';
+        progress_inner.style.width = '0%';
         return;
     }
     fetch(location.href, {
@@ -166,7 +174,7 @@ async function submitAnswer() {
                 submitAnswer();
             };
             continue_button.innerText = 'Submit answer again';
-        }, 9000);
+        }, 8000);
     }).catch(e => {
         console.error('Failed to submit answer:', e);
         status_text.innerText += (', but failed to submit answer: ' + e);
