@@ -3,31 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoW instead of CAPTCHA</title>
+    <title>Security Verification</title>
     <link rel="stylesheet" href="/web/pow.css" type="text/css" />
+    <meta name="robots" content="noindex,nofollow">
 </head>
 <body>
-    <div class="container">
-        <h1>正在验证你是否是真人...</h1>
-        
-        <div id="unsupported" class="unsupported">
-            <h2>浏览器不支持</h2>
-            <p>您的浏览器不支持必要的功能，请更新浏览器或启用 JavaScript 。</p>
-            <p>请注意，我们需要使用现代 JavaScript 功能，而像 JShelter 这类插件可能会阻挡这些功能。请为此域名停用 JShelter 或类似的插件。</p>
-        </div>
-        
-        <div id="error" class="error"></div>
-        
-        <div class="progress">
-            <div class="progress-bar">
-                <div id="progressBar" class="progress-bar-inner"></div>
+    <main>
+        <h1 class="centered">Security Verification</h1>
+        <div class="centered">
+            <img id="status_image" class="r" alt="status image" src="/web/img/loading.webp">
+            <p id="status">Loading...</p>
+            <div id="progress" role="progressbar" aria-labelledby="status">
+                <div class="bar-inner" id="progress_inner"></div>
             </div>
-            <div id="status" class="status">初始化中...</div>
-            <div id="hashes" class="hashes">0 kH/s</div>
+            <a id="continue_button" hidden title="Submit answer again">
+                Submit answer again
+            </a>
+            <details id="user">
+                <summary>Learn more...</summary>
+                <p>This page is a security check to confirm you're a real person, not an automated program. Please wait a moment while we complete the verification.</p>
+                <p>Here's why we do this:</p>
+                <ul>
+                    <li>We use a light security process that's quick for individuals but makes it difficult for bots to scrape our site in large
+                    numbers.</li>
+                    <li>This helps protect the site from misuse and keeps it running smoothly for everyone.</li>
+                    <li>By verifying your identity, you're helping to keep our site safe and secure for all users.</li>
+                </ul>
+                <p>Please note that some browser extension, like JShelter, may interfere with this process. If you're using such an extension, please
+                temporarily disable it for this site.</p>
+                <p>Thanks for your patience!</p>
+            </details>
         </div>
-        
-        <button id="retryButton">重试</button>
-    </div>
+    </main>
 
     <script type="module" src="/web/pow.js"></script>
 </body>

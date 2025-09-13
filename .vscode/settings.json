@@ -1,0 +1,4 @@
+{
+    "markdown.validate.enabled": true,
+    "C_Cpp.default.compilerPath": "cl.exe"
+}

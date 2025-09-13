@@ -52,7 +52,7 @@ int64_t pow_calculate(const char* challenge, int64_t start_nonce, int64_t batch_
     sha256_context ctx;
     
     int challenge_len = strlen(challenge);
-    
+
     for (int64_t nonce = start_nonce; nonce < start_nonce + batch_size; nonce++) {
         int written = snprintf(test_string, sizeof(test_string), "%s%lld", challenge, (long long)nonce);
         if (written >= sizeof(test_string)) {
@@ -68,32 +68,4 @@ int64_t pow_calculate(const char* challenge, int64_t start_nonce, int64_t batch_
     
     return -1;
 }
-#if 0
-EMSCRIPTEN_KEEPALIVE
-void pow_calculate_batch(const char* challenge, int64_t start_nonce, int64_t batch_size, 
-                        int difficulty, int64_t* result_nonce, int64_t* hashes_computed) {
-    char test_string[256];
-    uint8_t hash[32];
-    sha256_context ctx;
-    
-    int challenge_len = strlen(challenge);
-    *result_nonce = -1;
-    *hashes_computed = 0;
-    
-    for (int64_t nonce = start_nonce; nonce < start_nonce + batch_size; nonce++) {
-        int written = snprintf(test_string, sizeof(test_string), "%s%lld", challenge, (long long)nonce);
-        if (written >= sizeof(test_string)) {
-            (*hashes_computed)++;
-            continue;
-        }
-        
-        sha256(test_string, written, hash);
-        (*hashes_computed)++;
-        
-        if (check_difficulty(hash, difficulty)) {
-            *result_nonce = nonce;
-            return;
-        }
-    }
-}
-#endif
+

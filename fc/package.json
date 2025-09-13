@@ -10,7 +10,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "alioss-sign-v4-util": "^1.0.3",
+    "alioss-sign-v4-util": "^1.1.0",
     "jsonwebtoken": "^9.0.2",
     "mime-types": "^3.0.1"
   }
