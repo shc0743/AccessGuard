@@ -1,0 +1,17 @@
+{
+  "name": "my-file-load",
+  "version": "1.0.0",
+  "description": "",
+  "license": "MIT",
+  "author": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "alioss-sign-v4-util": "^1.0.3",
+    "jsonwebtoken": "^9.0.2",
+    "mime-types": "^3.0.1"
+  }
+}

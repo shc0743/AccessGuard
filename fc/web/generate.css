@@ -1,0 +1,267 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f5f7fa;
+    padding: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.description {
+    color: #7f8c8d;
+    font-size: 16px;
+}
+
+.policy-string-container {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.policy-string-container label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+#policyString {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 60px;
+}
+
+.policy-options {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.option-group {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.option-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.option-header input[type="checkbox"] {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+}
+
+.option-header label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c3e50;
+    cursor: pointer;
+}
+
+.option-content {
+    margin-left: 28px;
+    display: none;
+}
+
+.option-content.active {
+    display: block;
+}
+
+.domain-list {
+    margin-bottom: 15px;
+}
+
+.domain-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.domain-item input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.domain-item button {
+    margin-left: 10px;
+    padding: 8px 12px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.add-domain-btn {
+    padding: 8px 15px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 15px;
+}
+
+.allow-empty {
+    display: flex;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.allow-empty input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.date-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.date-input {
+    display: flex;
+    flex-direction: column;
+}
+
+.date-input label {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.date-input input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.pow-input {
+    display: flex;
+    flex-direction: column;
+}
+
+.pow-input label {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.pow-input input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 100px;
+}
+
+.info-text {
+    font-size: 14px;
+    color: #7f8c8d;
+    margin-top: 5px;
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 15px;
+    }
+    
+    .policy-string-container,
+    .policy-options {
+        padding: 15px;
+    }
+}
+
+.url-generator-container {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-top: 0.5em;
+}
+
+.url-input-group, .url-output-group {
+    margin-bottom: 15px;
+}
+
+.url-input-group label, .url-output-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.url-input-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.url-copy-container {
+    display: flex;
+    gap: 10px;
+}
+
+#finalUrl {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+#copyUrlBtn {
+    padding: 10px 15px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+#copyUrlBtn:hover {
+    background-color: #2980b9;
+}
+
+#copyUrlBtn:active {
+    background-color: #21618c;
+}
+
+.acdl {
+    margin-top: 1em;
+}

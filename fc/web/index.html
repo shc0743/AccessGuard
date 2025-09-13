@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Policy 生成器</title>
+    <link rel="stylesheet" href="/web/generate.css" type="text/css" />
+</head>
+<body>
+    <header>
+        <h1>Policy 生成器</h1>
+        <p class="description">生成用于访问控制的 policy 字符串。修改下方选项或直接编辑 policy 字符串。</p>
+    </header>
+    
+    <div class="policy-string-container">
+        <label for="policyString">Policy 字符串:</label>
+        <textarea id="policyString" placeholder="例如: Referer=example.com,test.com;NotBefore=1672531200000;NotAfter=1672617599000;PoW=3"></textarea>
+    </div>
+    
+    <div class="policy-options">
+        <div class="option-group">
+            <div class="option-header">
+                <input type="checkbox" id="refererEnabled">
+                <label for="refererEnabled">Referer 限制</label>
+            </div>
+            <div class="option-content" id="refererContent">
+                <div class="domain-list" id="domainList">
+                    <!-- 域名列表将在这里动态生成 -->
+                </div>
+                <button class="add-domain-btn" id="addDomainBtn">添加域名</button>
+                <div class="allow-empty">
+                    <input type="checkbox" id="allowEmptyReferer">
+                    <label for="allowEmptyReferer">允许空 Referer</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="option-group">
+            <div class="option-header">
+                <input type="checkbox" id="notBeforeEnabled">
+                <label for="notBeforeEnabled">NotBefore (开始时间)</label>
+            </div>
+            <div class="option-content" id="notBeforeContent">
+                <div class="date-inputs">
+                    <div class="date-input">
+                        <label for="notBeforeDate">日期:</label>
+                        <input type="date" id="notBeforeDate">
+                    </div>
+                    <div class="date-input">
+                        <label for="notBeforeTime">时间 (精确到秒):</label>
+                        <input type="time" id="notBeforeTime" step="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="option-group">
+            <div class="option-header">
+                <input type="checkbox" id="notAfterEnabled">
+                <label for="notAfterEnabled">NotAfter (结束时间)</label>
+            </div>
+            <div class="option-content" id="notAfterContent">
+                <div class="date-inputs">
+                    <div class="date-input">
+                        <label for="notAfterDate">日期:</label>
+                        <input type="date" id="notAfterDate">
+                    </div>
+                    <div class="date-input">
+                        <label for="notAfterTime">时间 (精确到秒):</label>
+                        <input type="time" id="notAfterTime" step="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="option-group">
+            <div class="option-header">
+                <input type="checkbox" id="powEnabled">
+                <label for="powEnabled">PoW (工作量证明)</label>
+            </div>
+            <div class="option-content" id="powContent">
+                <div class="pow-input">
+                    <label for="powDifficulty">难度值:</label>
+                    <input type="number" id="powDifficulty" min="1" max="10" value="3">
+                    <p class="info-text">数字越大，计算难度越高 (建议值: 3-5)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="url-generator-container">
+        <div class="url-input-group">
+            <label for="filename">文件名:</label>
+            <input type="text" id="filename" placeholder="输入文件名">
+        </div>
+        
+        <div class="url-output-group">
+            <label for="finalUrl">最终URL:</label>
+            <div class="url-copy-container">
+                <input type="text" id="finalUrl" readonly>
+                <button id="copyUrlBtn">复制</button>
+            </div>
+        </div>
+    </div>
+    
+    <a class="acdl" href="/web/auto_challenge.py" download="ac_v1.py">获取 auto challenge</a>
+    
+    <script type="module" src="/web/generate.js"></script>
+</body>
+</html>
