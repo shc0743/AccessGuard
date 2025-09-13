@@ -124,10 +124,6 @@ async function requestChallenge() {
             // submit answer
             work_data.nonce = nonce;
             submitAnswer();
-            continue_button.addEventListener('click', e => {
-                e.preventDefault();
-                submitAnswer();
-            });
         }).catch(e => {
             console.error('Failed to calculate PoW:', e);
             status_text.innerText = ('Failed to calculate: ' + e);
@@ -145,6 +141,7 @@ async function submitAnswer() {
     if ((Date.now() - work_data.start_time) > (work_data.expires * 1000)) {
         status_text.innerText = ('Request has expired. Please refresh the page.');
         uifail();
+        continue_button.hidden = true;
         return;
     }
     fetch(location.href, {
@@ -158,9 +155,18 @@ async function submitAnswer() {
         status_text.innerText = `Verified (nonce: ${work_data.nonce})`;
         continue_button.href = url;
         continue_button.hidden = false;
+        continue_button.innerText = 'Continue';
         if (!globalThis.user_wants_to_read_more) {
             window.open(url, '_self');
         }
+        setTimeout(() => {
+            continue_button.onclick = e => {
+                e.preventDefault();
+                globalThis.user_wants_to_read_more = false;
+                submitAnswer();
+            };
+            continue_button.innerText = 'Submit answer again';
+        }, 9000);
     }).catch(e => {
         console.error('Failed to submit answer:', e);
         status_text.innerText += (', but failed to submit answer: ' + e);

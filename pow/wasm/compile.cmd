@@ -4,3 +4,4 @@
 @copy /y pow_calculator.js ..\..\fc\web\
 @copy /y pow_calculator.wasm ..\..\fc\web\
 @echo Pow calculator compiled.
+@timeout 2
