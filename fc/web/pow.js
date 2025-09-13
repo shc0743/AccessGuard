@@ -167,11 +167,13 @@ async function submitAnswer() {
         if (!globalThis.user_wants_to_read_more) {
             window.open(url, '_self');
         }
+        continue_button.onclick = null;
         setTimeout(() => {
             continue_button.onclick = e => {
                 e.preventDefault();
                 globalThis.user_wants_to_read_more = false;
                 submitAnswer();
+                continue_button.onclick = e => e.preventDefault();
             };
             continue_button.innerText = 'Submit answer again';
         }, 8000);

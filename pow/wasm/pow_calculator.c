@@ -47,7 +47,7 @@ int check_difficulty(const uint8_t* hash, int difficulty) {
 
 EMSCRIPTEN_KEEPALIVE
 int64_t pow_calculate(const char* challenge, int64_t start_nonce, int64_t batch_size, int difficulty) {
-    char test_string[2048];
+    char test_string[4096];
     uint8_t hash[32];
     sha256_context ctx;
     
