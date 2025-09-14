@@ -141,8 +141,11 @@ async function PoW_handler(eventObj, context, {
         // PoW验证通过，生成签名URL
         return {
             statusCode: 200,
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: await geturl(`${encodeURIComponent(arg1)}/${encodeURIComponent(arg2)}`, context)
+            headers: { 'Content-Type': 'application/json;charset=utf-8' },
+            body: JSON.stringify({
+                url: await geturl(`${encodeURIComponent(arg1)}/${encodeURIComponent(arg2)}`, context),
+                expires: SIGNED_URL_EXPIRES,
+            }),
         };
     } else {
         return {

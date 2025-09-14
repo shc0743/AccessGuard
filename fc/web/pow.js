@@ -172,7 +172,7 @@ async function submitAnswer() {
         if (!r.ok) {
             throw `HTTP ${r.status} ${r.statusText}\n${await r.text()}`;
         }
-        const url = await r.text();
+        const { url, expires } = await r.json();
         status_text.innerText = `Verified (nonce: ${work_data.nonce})`;
         continue_button.href = url;
         continue_button.hidden = false;
@@ -189,7 +189,7 @@ async function submitAnswer() {
                 continue_button.onclick = e => e.preventDefault();
             };
             continue_button.innerText = 'Submit answer again';
-        }, 8000);
+        }, (expires - 2) * 1000);
     }).catch(e => {
         console.error('Failed to submit answer:', e);
         status_text.innerText += (', but failed to submit answer: ' + e);

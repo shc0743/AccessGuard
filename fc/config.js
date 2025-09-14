@@ -5,6 +5,7 @@ export const bucket = process.env.bucket;
 export const region = process.env.region;
 export const baseUrl = process.env.base;
 export const CHALLENGE_SECRET = process.env.CHALLENGE_SECRET;
+export const SIGNED_URL_EXPIRES = 10; // 签名URL有效期（秒）
 // difficulty 相关配置
 export const MIN_CHALLENGE_EXPIRY = 15; // 最短挑战有效期（秒）
 export const MAX_CHALLENGE_EXPIRY = 1800; // 最长挑战有效期（秒）
