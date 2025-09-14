@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import geturl from '../../geturl.js';
-import { BASE_COMPUTATION_TIME, MIN_CHALLENGE_EXPIRY, MAX_CHALLENGE_EXPIRY, CHALLENGE_SECRET, baseDir } from '../../config.js';
+import { BASE_COMPUTATION_TIME, MIN_CHALLENGE_EXPIRY, MAX_CHALLENGE_EXPIRY, CHALLENGE_SECRET, SIGNED_URL_EXPIRES, baseDir } from '../../config.js';
 
 // 生成PoW挑战
 function calculateDynamicExpiry(difficulty) {
