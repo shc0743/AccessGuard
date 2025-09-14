@@ -15,5 +15,5 @@ logs
 dist/
 build/
 out/
-coverage/
+*.obj
 fc.zip

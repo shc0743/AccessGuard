@@ -28,7 +28,12 @@
 extern "C" {
 #endif
 
+// (*) Fix: Fix MSVC Compilation Error
+#ifdef _MSC_VER
+#define FN_ static __forceinline
+#else
 #define FN_ static inline __attribute__((const))
+#endif
 
 static const uint32_t K[64] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,

@@ -1,4 +1,7 @@
 {
     "markdown.validate.enabled": true,
-    "C_Cpp.default.compilerPath": "cl.exe"
+    "C_Cpp.default.compilerPath": "cl.exe",
+    "files.associations": {
+        "sha256.h": "c"
+    }
 }

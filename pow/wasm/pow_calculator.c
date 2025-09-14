@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <emscripten.h>
-#include "sha256.h"
+#include "../c/sha256.h"
 
 #if 0
 // GPT
