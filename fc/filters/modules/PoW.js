@@ -163,7 +163,7 @@ export default async function filter_request(acParams, eventObj, context, arg1, 
     // 检查是否需要PoW验证
     const powDifficulty = parseInt(acParams.PoW) || 0;
     const requiresPoW = powDifficulty > 0;
-    if (!requiresPoW && httpMethod === 'GET') return;
+    if (!requiresPoW) return;
     // 处理 PoW
     return await PoW_handler(eventObj, context, {
         httpMethod, path, powDifficulty, arg1, arg2
