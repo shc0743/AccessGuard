@@ -10,10 +10,27 @@ user.addEventListener('toggle', () => globalThis.user_wants_to_read_more = true,
 const worker = new Worker('/web/pow_worker.js');
 let work_data = {};
 let resolve = null;
+const uireset = () => {
+    continue_button.hidden = true;
+    status_image.src = '/web/img/loading.webp';
+    status_image.classList.add('r');
+    status_image.style.maxWidth = '';
+    progress_inner.style.width = '0%';
+}
 const uifail = () => {
     status_image.src = '/web/img/error.webp';
     status_image.classList.remove('r');
     status_image.style.maxWidth = '64px';
+    continue_button.hidden = false;
+    continue_button.innerText = 'Try again';
+    continue_button.onclick = e => {
+        e.preventDefault();
+        uireset();
+        continue_button.hidden = true;
+        continue_button.onclick = null;
+        status_text.innerText = 'Requesting challenge...';
+        requestChallenge();
+    }
 }
 worker.onmessage = async function (e) {
     const { data } = e;
@@ -54,7 +71,7 @@ worker.onmessage = async function (e) {
                     if (last_batch_time) {
                         const elapsed = Date.now() - last_batch_time;
                         const speed = +(work_data.BATCH_SIZE.toString()) / elapsed;
-                        status_text.innerText = `Calculating...\nDifficulty: ${work_data.difficulty}, Speed: ${speed.toFixed(2)} kH/s`;
+                        status_text.innerText = `Calculating...\nDifficulty: ${work_data.difficulty}, Speed: ${speed.toFixed(2)} kH/s\n${Math.floor(work_data.last_nonce/1000)}k iters`;
                     }
                     work_data.last_batch_time = Date.now();
                     return;
@@ -144,12 +161,8 @@ async function requestChallenge() {
 async function submitAnswer() {
     if ((Date.now() - work_data.start_time) > (work_data.expires * 1000)) {
         status_text.innerText = 'Challenge has expired. Requesting new challenge...';
+        uireset();
         setTimeout(() => requestChallenge(), 2000);
-        continue_button.hidden = true;
-        status_image.src = '/web/img/loading.webp';
-        status_image.classList.add('r');
-        status_image.style.maxWidth = '';
-        progress_inner.style.width = '0%';
         return;
     }
     fetch(location.href, {
