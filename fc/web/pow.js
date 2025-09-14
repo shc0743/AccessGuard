@@ -71,7 +71,7 @@ worker.onmessage = async function (e) {
                     if (last_batch_time) {
                         const elapsed = Date.now() - last_batch_time;
                         const speed = +(work_data.BATCH_SIZE.toString()) / elapsed;
-                        status_text.innerText = `Calculating...\nDifficulty: ${work_data.difficulty}, Speed: ${speed.toFixed(2)} kH/s\n${Math.floor(work_data.last_nonce/1000)}k iters`;
+                        status_text.innerText = `Calculating...\nDifficulty: ${work_data.difficulty}, Speed: ${speed.toFixed(2)} kH/s\n${Math.floor(Number(work_data.last_nonce)/1000)}k iters`;
                     }
                     work_data.last_batch_time = Date.now();
                     return;
