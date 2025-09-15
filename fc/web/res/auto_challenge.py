@@ -58,38 +58,45 @@ class PowChallengeSolver:
         """
         处理整个流程：获取挑战、解决挑战、获取文件 URL
         """
-        # 初始 GET 请求获取挑战
         print(f"Requesting challenge from {url}")
         response = self.session.get(url)
-        
+
         if response.status_code == 401:
             # 解析挑战信息
             try:
                 challenge_data = response.json()
                 challenge_token = challenge_data['challenge']
                 difficulty = challenge_data['difficulty']
-                
+
                 # 解决 PoW 挑战
                 nonce = self.solve_pow_challenge(challenge_token, difficulty)
-                
+
                 if nonce:
                     # 提交解决方案
                     payload = {
                         'challenge': challenge_token,
                         'nonce': nonce
                     }
-                    
+
                     print("Submitting solution...")
                     post_response = self.session.post(
-                        url, 
+                        url,
                         json=payload,
                         headers={'Content-Type': 'application/json'}
                     )
-                    
+
                     if post_response.status_code == 200:
-                        file_url = post_response.text
-                        print(f"Success! File URL: {file_url}")
-                        return file_url
+                        # 服务器返回 JSON 格式，需解析 url 字段
+                        try:
+                            result = post_response.json()
+                            file_url = result.get('url')
+                            if file_url:
+                                print(f"Success! File URL: {file_url}")
+                                return file_url
+                            else:
+                                print(f"No 'url' field in response: {result}")
+                        except Exception as e:
+                            print(f"Error parsing JSON response: {e}\nRaw response: {post_response.text}")
                     else:
                         print(f"Failed to submit solution: {post_response.status_code}")
                         print(f"Response: {post_response.text}")
@@ -100,7 +107,7 @@ class PowChallengeSolver:
         else:
             print(f"Unexpected response: {response.status_code}")
             print(f"Response: {response.text}")
-        
+
         return None
     
     def download_file(self, url: str, filename: Optional[str] = None) -> bool:
