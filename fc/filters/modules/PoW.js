@@ -2,15 +2,26 @@ import path from 'path';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import geturl from '../../geturl.js';
-import { BASE_COMPUTATION_TIME, MIN_CHALLENGE_EXPIRY, MAX_CHALLENGE_EXPIRY, CHALLENGE_SECRET, SIGNED_URL_EXPIRES, baseDir } from '../../config.js';
+import { MIN_CHALLENGE_EXPIRY, MAX_CHALLENGE_EXPIRY, CHALLENGE_SECRET, SIGNED_URL_EXPIRES, baseDir } from '../../config.js';
 
 // 生成PoW挑战
 function calculateDynamicExpiry(difficulty) {
-    // 基于难度的指数增长计算时间窗口
-    // 难度每增加1，所需时间大约翻倍
-    const computedTime = BASE_COMPUTATION_TIME * Math.pow(2, difficulty);
-    // 应用最小和最大限制
-    return Math.max(MIN_CHALLENGE_EXPIRY, Math.min(computedTime, MAX_CHALLENGE_EXPIRY));
+    // 基于经验的难度-有效期映射表
+    // key: difficulty, value: expiry time in seconds
+    const difficultyMap = {
+        1: 10,
+        2: 12,
+        3: 16,
+        4: 30,
+        5: 70,
+        6: 150,
+        7: 600,
+        8: 1500,
+    };
+    // 从映射表中获取值，如果找不到则返回computedTime
+    const computedTime = Math.pow(16, difficulty);
+    const expiryTime = difficultyMap[difficulty] ?? computedTime;
+    return Math.max(MIN_CHALLENGE_EXPIRY, Math.min(expiryTime, MAX_CHALLENGE_EXPIRY));
 }
 function generatePowChallenge(resourcePath, difficulty) {
     const timestamp = Date.now();
@@ -28,32 +39,47 @@ function generatePowChallenge(resourcePath, difficulty) {
         e,                   // 有效期
     };
     // 使用JWT签名挑战
-    const token = jwt.sign(challengePayload, CHALLENGE_SECRET, { expiresIn: '40m' });
+    const token = jwt.sign(challengePayload, CHALLENGE_SECRET, { expiresIn: '120m' });
     return { challenge: token, expires: e };
 }
-// 验证PoW挑战和答案
+// 验证PoW挑战和答案（二进制）
 async function verifyPowChallenge(challengeToken, nonce) {
     try {
         // 验证JWT签名
         const challenge = jwt.verify(challengeToken, CHALLENGE_SECRET);
+        
         // 检查挑战是否过期
         if ((Date.now() - challenge.t) > (challenge.e * 1000)) {
             return { valid: false, reason: "Challenge expired" };
         }
-        // 验证PoW - 使用 Web Crypto API
+        
         const hashInput = challengeToken + nonce;
         const encoder = new TextEncoder();
         const data = encoder.encode(hashInput);
         const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        // 检查是否满足难度要求
-        const requiredPrefix = '0'.repeat(challenge.d);
-        if (hash.startsWith(requiredPrefix)) {
-            return { valid: true, resource: challenge.r };
-        } else {
-            return { valid: false, reason: "Failure" };
+        const hashArray = new Uint8Array(hashBuffer);
+        
+        // 检查是否满足难度要求 - 二进制模式
+        const difficulty = challenge.d;
+        const zeroBytes = Math.floor(difficulty / 8);
+        const remainingBits = difficulty % 8;
+        
+        // 检查完整字节
+        for (let i = 0; i < zeroBytes; i++) {
+            if (hashArray[i] !== 0) {
+                return { valid: false, reason: "Invalid solution" };
+            }
         }
+        
+        // 检查剩余位
+        if (remainingBits > 0 && zeroBytes < 32) {
+            const mask = (0xFF << (8 - remainingBits)) & 0xFF;
+            if ((hashArray[zeroBytes] & mask) !== 0) {
+                return { valid: false, reason: "Invalid solution" };
+            }
+        }
+        
+        return { valid: true, resource: challenge.r };
     } catch (error) {
         return { valid: false, reason: "Invalid signature" };
     }
@@ -86,7 +112,7 @@ async function PoW_handler(eventObj, context, {
                 return {
                     statusCode: 500,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ error: String(error) + '\n' + String(error?.stack) })
+                    body: JSON.stringify({ error: 'Unable to load document' })
                 };
             }
         }
@@ -161,7 +187,9 @@ export default async function filter_request(acParams, eventObj, context, arg1, 
     const httpMethod = eventObj.requestContext?.http?.method || 'GET';
     const path = eventObj.requestContext?.http?.path || '';
     // 检查是否需要PoW验证
-    const powDifficulty = parseInt(acParams.PoW) || 0;
+    let powDifficulty = parseInt(acParams.PoW) || 0;
+    // 二进制模式（难度b）/十六进制模式（默认）
+    if (!acParams.PoW.endsWith('b')) powDifficulty *= 4;
     const requiresPoW = powDifficulty > 0;
     if (!requiresPoW) return;
     // 处理 PoW

@@ -20,7 +20,7 @@ importScripts('/web/pow_calculator.js');
                 case 'calculate':
                 {
                     const { challenge, start_nonce, batch_size, difficulty } = data;
-                    const result = Calc(challenge, start_nonce, batch_size, difficulty * 4);
+                    const result = Calc(challenge, start_nonce, batch_size, difficulty);
                     postMessage({ action, type: 'calculate', success: true, result });
                     break;
                 }

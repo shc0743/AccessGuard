@@ -60,12 +60,19 @@ export const handler = async (event, context) => {
             };
         }
     }
+    
+    // 检查请求方法
+    if (!(httpMethod in ALLOWED_METHODS)) return {
+        statusCode: 405,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Method not allowed' })
+    };
 
     // 重定向请求
     return {
         statusCode: 307,
         headers: {
-            'Location': await geturl(`${encodeURIComponent(arg1)}/${encodeURIComponent(arg2)}`, context),
+            'Location': await geturl(`${encodeURIComponent(arg1)}/${encodeURIComponent(arg2)}`, context, httpMethod),
             'Cache-Control': 'no-store'
         },
     };
