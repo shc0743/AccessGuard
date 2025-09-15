@@ -1,6 +1,6 @@
 import { serveStaticFile, isStaticRequest } from './static.js';
 import filters from './filters/index.js';
-import { checkConfig } from './config.js';
+import { checkConfig, ALLOWED_METHODS } from './config.js';
 import { parseAccessControlParams } from './filters/parser.js';
 import geturl from './geturl.js';
 
@@ -62,7 +62,7 @@ export const handler = async (event, context) => {
     }
     
     // 检查请求方法
-    if (!(httpMethod in ALLOWED_METHODS)) return {
+    if (!ALLOWED_METHODS.includes(httpMethod)) return {
         statusCode: 405,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Method not allowed' })
