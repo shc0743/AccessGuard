@@ -2,26 +2,54 @@ import path from 'path';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import geturl from '../../geturl.js';
-import { MIN_CHALLENGE_EXPIRY, MAX_CHALLENGE_EXPIRY, CHALLENGE_SECRET, SIGNED_URL_EXPIRES, baseDir } from '../../config.js';
+import {
+    MIN_CHALLENGE_EXPIRY, MAX_CHALLENGE_EXPIRY,
+    POW_EXPIRY_STRATEGY,
+    HASHRATE_MIN, HASHRATE_AVG,
+    CHALLENGE_SECRET,
+    SIGNED_URL_EXPIRES,
+    baseDir,
+} from '../../config.js';
 
-// 生成PoW挑战
+// 分位系数（指数分布近似）
+const FACTOR_MEDIAN = Math.log(2);         // ~0.6931
+const FACTOR_90 = -Math.log(0.1);          // ~2.302585
+// 预定义策略映射
+const POW_STRATEGY_MAP = {
+  // 保守策略：保证最低算力设备 90% 成功
+  T90_AT_200KH: {
+    factor: FACTOR_90,
+    hashrate: HASHRATE_MIN,
+  },
+  // 折中策略：保证平均算力设备 90% 成功（最低算力成功率约 78.5%）
+  T90_AT_300KH: {
+    factor: FACTOR_90,
+    hashrate: HASHRATE_AVG,
+  },
+  // 严格策略：平均算力设备 50% 成功
+  MEDIAN_AT_300KH: {
+    factor: FACTOR_MEDIAN,
+    hashrate: HASHRATE_AVG,
+  },
+};
+
+/**
+ * 根据 difficulty 和配置策略，计算挑战的过期时间（秒）
+ */
 function calculateDynamicExpiry(difficulty) {
-    // 基于经验的难度-有效期映射表
-    // key: difficulty, value: expiry time in seconds
-    const difficultyMap = {
-        1: 10,
-        2: 12,
-        3: 16,
-        4: 30,
-        5: 70,
-        6: 150,
-        7: 600,
-        8: 1500,
-    };
-    // 从映射表中获取值，如果找不到则返回computedTime
-    const computedTime = Math.pow(16, difficulty);
-    const expiryTime = difficultyMap[difficulty] ?? computedTime;
-    return Math.max(MIN_CHALLENGE_EXPIRY, Math.min(expiryTime, MAX_CHALLENGE_EXPIRY));
+    const strategy = POW_STRATEGY_MAP[POW_EXPIRY_STRATEGY];
+    if (!strategy) {
+        throw new Error(`Missing strategy`);
+    }
+    // 期望哈希数（2^difficulty）
+    const hashes = Math.pow(2, difficulty);
+    // 计算 expiry（秒）
+    let expirySec = strategy.factor * (hashes / strategy.hashrate);
+    //// 加一点 buffer（例如 10%，避免网络延迟等）
+    // expirySec *= 1.10;
+    // 限制在最小和最大范围之间
+    expirySec = Math.max(MIN_CHALLENGE_EXPIRY, Math.min(expirySec, MAX_CHALLENGE_EXPIRY));
+    return Math.round(expirySec);
 }
 function generatePowChallenge(resourcePath, difficulty) {
     const timestamp = Date.now();

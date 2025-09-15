@@ -9,6 +9,11 @@ export const SIGNED_URL_EXPIRES = 10; // 签名URL有效期（秒）
 // difficulty 相关配置
 export const MIN_CHALLENGE_EXPIRY = 15; // 最短挑战有效期（秒）
 export const MAX_CHALLENGE_EXPIRY = 1800; // 最长挑战有效期（秒）
+// 策略：可选 "T90_AT_200KH", "T90_AT_300KH", "MEDIAN_AT_300KH" 等
+export const POW_EXPIRY_STRATEGY = "T90_AT_200KH";
+// 最低算力（哈希率，单位 H/s）
+export const HASHRATE_MIN = 200_000;   // 200 kH/s
+export const HASHRATE_AVG = 300_000;   // 300 kH/s
 // HTTP 请求相关
 export const ALLOWED_METHODS = ["GET", "HEAD"];
 // 项目根目录
