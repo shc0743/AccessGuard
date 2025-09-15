@@ -16,6 +16,7 @@ const uireset = () => {
     status_image.classList.add('r');
     status_image.style.maxWidth = '';
     progress_inner.style.width = '0%';
+    if (window.progress_timer_id) clearInterval(window.progress_timer_id);
 }
 const uifail = () => {
     status_image.src = '/web/img/error.webp';
@@ -30,7 +31,8 @@ const uifail = () => {
         continue_button.onclick = null;
         status_text.innerText = 'Requesting challenge...';
         requestChallenge();
-    }
+    };
+    if (window.progress_timer_id) clearInterval(window.progress_timer_id);
 }
 worker.onmessage = async function (e) {
     const { data } = e;
@@ -123,6 +125,7 @@ async function requestChallenge() {
             if (progress_inner.style.width === '101%') {
                 progress_inner.style.width = '100%';
                 clearInterval(window.progress_timer_id);
+                delete window.progress_timer_id;
             }
         }, 200);
 
@@ -142,6 +145,7 @@ async function requestChallenge() {
             status_image.classList.remove('r');
             progress.style.display = 'none';
             clearInterval(window.progress_timer_id);
+            delete window.progress_timer_id;
             // submit answer
             work_data.nonce = nonce;
             submitAnswer();
