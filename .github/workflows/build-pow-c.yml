@@ -30,9 +30,11 @@ jobs:
     - name: Setup MSVC (Windows only)
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v1.1
-
-    - name: Run compilation script
-      run: ${{ matrix.script }}
+      
+    - name: Run build script
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" && ./compile.cmd
+      shell: cmd
       working-directory: pow/c
       
     - name: List files for debugging (Linux)
