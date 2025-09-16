@@ -7,7 +7,6 @@ import geturl from './geturl.js';
 export const handler = async (event, context) => {
     const eventObj = JSON.parse(event);
     { let e = checkConfig(); if (e) return e; }
-    return event;
     // HTTP方法
     const httpMethod = eventObj.requestContext?.http?.method || 'GET';
     // 请求路径

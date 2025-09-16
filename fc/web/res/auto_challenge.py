@@ -29,7 +29,6 @@ class PowChallengeSolver:
         self.pow_executable = self._find_pow_executable()
     
     def _find_pow_executable(self) -> Optional[str]:
-        """根据平台查找合适的PoW计算程序"""
         candidates = []
         normalized_path = os.path.normpath('../c/bin/')
         current_path = os.environ.get('PATH', '')
@@ -55,7 +54,6 @@ class PowChallengeSolver:
         return None
 
     def solve_pow_challenge_external(self, challenge: str, difficulty: int) -> Optional[str]:
-        """使用外部C程序解决PoW挑战"""
         if not self.pow_executable:
             return None
         try:
@@ -87,9 +85,6 @@ class PowChallengeSolver:
         return None
     
     def solve_pow_challenge(self, challenge: str, difficulty: int) -> Optional[str]:
-        """
-        解决 PoW 挑战：找到满足条件的 nonce
-        """
         print(f"Solving PoW challenge with difficulty {difficulty} (binary bits)...")
         start_time = time.time()
         eres = self.solve_pow_challenge_external(challenge, difficulty)
@@ -99,11 +94,9 @@ class PowChallengeSolver:
             return str(eres)
         print('Warning: External PoW Calculator module not found, falling back to Python implementation (maybe slow)...')
         
-        # 计算需要检查的完整字节数和剩余位数
         zero_bytes = difficulty // 8
         remaining_bits = difficulty % 8
         
-        # 创建掩码用于检查剩余位
         if remaining_bits > 0:
             mask = (0xFF << (8 - remaining_bits)) & 0xFF
         else:
@@ -113,19 +106,15 @@ class PowChallengeSolver:
         max_nonce = 2**64
         
         while nonce < max_nonce:
-            # 构建输入字符串
             input_str = challenge + str(nonce)
-            # 计算 SHA-256 哈希的二进制表示
             hash_bytes = hashlib.sha256(input_str.encode()).digest()
             
-            # 检查完整字节
             valid = True
             for i in range(zero_bytes):
                 if hash_bytes[i] != 0:
                     valid = False
                     break
             
-            # 检查剩余位
             if valid and remaining_bits > 0 and zero_bytes < len(hash_bytes):
                 if (hash_bytes[zero_bytes] & mask) != 0:
                     valid = False
@@ -139,7 +128,6 @@ class PowChallengeSolver:
             
             nonce += 1
             
-            # 每 100000 次尝试显示进度
             if nonce % 100000 == 0:
                 print(f"Attempted {nonce} nonces...", end="\r")
         
@@ -147,25 +135,19 @@ class PowChallengeSolver:
         return None
     
     def process_url(self, url: str) -> Optional[str]:
-        """
-        处理整个流程：获取挑战、解决挑战、获取文件 URL
-        """
         print(f"Requesting challenge from {url}")
         try:
             response = self.session.get(url, timeout=30)
 
             if response.status_code == 401:
-                # 解析挑战信息
                 try:
                     challenge_data = response.json()
                     challenge_token = challenge_data['challenge']
                     difficulty = challenge_data['difficulty']
 
-                    # 解决 PoW 挑战
                     nonce = self.solve_pow_challenge(challenge_token, difficulty)
 
                     if nonce:
-                        # 提交解决方案
                         payload = {
                             'challenge': challenge_token,
                             'nonce': nonce
@@ -180,7 +162,6 @@ class PowChallengeSolver:
                         )
 
                         if post_response.status_code == 200:
-                            # 服务器返回 JSON 格式，需解析 url 字段
                             try:
                                 result = post_response.json()
                                 file_url = result.get('url')
@@ -209,14 +190,11 @@ class PowChallengeSolver:
         return None
     
     def download_file(self, url: str, filename: Optional[str] = None) -> bool:
-        """
-        下载文件到当前目录
-        """
+
         try:
             response = self.session.get(url, stream=True, timeout=60)
             
             if response.status_code == 200:
-                # 从 URL 提取文件名（如果没有提供）
                 if not filename:
                     content_disposition = response.headers.get('content-disposition')
                     if content_disposition and 'filename=' in content_disposition:
@@ -224,7 +202,6 @@ class PowChallengeSolver:
                     else:
                         filename = urllib.parse.unquote(url.split('/')[-1].split('?')[0])
                 
-                # 写入文件
                 with open(filename, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
@@ -241,15 +218,12 @@ class PowChallengeSolver:
 def main():
     solver = PowChallengeSolver()
     
-    # 获取用户输入的 URL
     url = input("Enter the URL: ").strip()
     choice = input("Do you want to download the file? (y/n): ").strip().lower()
     
-    # 处理 URL 并获取文件 URL
     file_url = solver.process_url(url)
     
     if file_url:
-        # 询问用户是否要下载文件
         if choice in ['y', 'yes']:
             solver.download_file(file_url)
     else:

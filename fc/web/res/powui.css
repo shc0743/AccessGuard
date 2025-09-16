@@ -1,5 +1,5 @@
 :root {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: Consolas, monospace;
 }
 .centered {
     text-align: center;
@@ -54,11 +54,19 @@ a {
     font-weight: bold;
 }
 #hint {
-    margin-top: 10px;
+    margin: 10px 0;
 }
 main details+details {
     margin-top: 10px;
 }
 #hint_retry_btn {
     margin-left: 0.5em;
+}
+.technical {
+    white-space: pre;
+    font-family: Consolas, monospace;
+    padding: 5px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    overflow-x: auto;
 }

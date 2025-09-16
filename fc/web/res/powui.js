@@ -3,12 +3,17 @@ const status_image = g.status_image, status_text = g.status,
     progress = g.progress, progress_inner = g.progress_inner,
     continue_button = g.continue_button,
     hint = g.hint, hint_text = g.hint_text, hint_retry_btn = g.hint_retry_btn,
-    user = g.user;
+    user = g.user, techinfo = g.techinfo;
 user.addEventListener('toggle', () => globalThis.user_wants_to_read_more = true, { once: true });
 
 let worker = null;
 let work_data = {};
 let resolve = null;
+const tech = t => techinfo.innerText = t + (work_data ? `
+Challenge: ${work_data.challenge}
+Difficulty: ${work_data.difficulty}
+Expires: ${work_data.expires}
+Will expire at: ${new Date(work_data.start_time + work_data.expires * 1000).toLocaleString()}` : '');
 const reset_timers = () => {
     if (window.progress_timer_id) { clearInterval(window.progress_timer_id); delete window.progress_timer_id; }
     if (window.calculate_expiry_timer_id) { clearInterval(window.calculate_expiry_timer_id); delete window.calculate_expiry_timer_id; }
@@ -20,6 +25,7 @@ const uireset = () => {
     status_image.style.maxWidth = '';
     progress_inner.style.width = '0%';
     reset_timers();
+    tech('UI was reset');
 }
 const uifail = (reason = '') => {
     if (reason) status_text.innerText = reason;
@@ -34,14 +40,20 @@ const uifail = (reason = '') => {
         continue_button.hidden = true;
         continue_button.onclick = null;
         status_text.innerText = 'Requesting challenge...';
+        tech('Requesting challenge');
         requestChallenge();
     };
+    hint.hidden = true;
     reset_timers();
 }
 const reset_worker = function () {
-    if (worker) worker.terminate();
+    if (worker) try { worker.terminate(); } catch (_) {}
     worker = new Worker('/web/pow_worker.js');
     worker.onmessage = WorkerHandler;
+    worker.onerror = e => {
+        uifail('Failed to create Worker, please refresh page: ' + e);
+    }
+    tech('Worker was created');
 }
 try {
     reset_worker();
@@ -54,6 +66,7 @@ catch (e) {
 }
 
 hint_retry_btn.onclick = () => {
+    uireset();
     reset_worker();
     worker.postMessage({ action: 'init' });
     status_text.innerText = 'Initializing...';
@@ -68,6 +81,7 @@ async function WorkerHandler(e) {
             if (success) {
                 console.log('PoW Calculator initialized');
                 status_text.innerText = 'Requesting challenge...';
+                tech('Worker WebAssembly initialized, requesting challenge');
                 requestChallenge();
             }
             else {
@@ -77,47 +91,49 @@ async function WorkerHandler(e) {
             break;
         case 'calculate':
             if (success) {
-                if (result === -1n) {
-                    if (!work_data.run) return;
-                    const time_elapsed = (Date.now() - work_data.start_time);
-                    if (time_elapsed > (work_data.expires * 1000)) {
-                        uifail('Unable to solve the PoW before it expires.\nThis might be caused due to randomness or slow device.\nTrying again may solve the problem.');
-                        return;
-                    }
-                    const time_expected = 2n ** BigInt(work_data.difficulty);
-                    let shouldShowTip = true;
-                    if (time_elapsed > (time_expected * 2n)) {
-                        hint_text.innerText = 'It takes longer than expected to solve the PoW. To get a new challenge, you can try again.';
-                        hint_retry_btn.hidden = false;
-                    } else if (time_elapsed > time_expected) {
-                        hint_text.innerText = 'It is taking a bit longer than usual to solve the PoW...';
-                        hint_retry_btn.hidden = false;
-                    } else if (time_elapsed > (time_expected / 2n)) {
-                        hint_text.innerText = 'It may take a little longer than average, please wait...';
-                    } else shouldShowTip = false;
-                    hint.hidden = !shouldShowTip;
-                    // not found, continue search
-                    work_data.last_nonce += work_data.BATCH_SIZE;
-                    worker.postMessage({
-                        action: 'calculate',
-                        challenge: work_data.challenge,
-                        difficulty: work_data.difficulty,
-                        start_nonce: work_data.last_nonce,
-                        batch_size: work_data.BATCH_SIZE,
-                    });
-                    const last_batch_time = work_data.last_batch_time;
-                    if (last_batch_time) {
-                        const elapsed = Date.now() - last_batch_time;
-                        const speed = +(work_data.BATCH_SIZE.toString()) / elapsed;
-                        status_text.innerText = `Calculating...\nDifficulty: ${work_data.difficulty}, Speed: ${speed.toFixed(2)} kH/s\n${Math.floor(Number(work_data.last_nonce)/1000)}k iters`;
-                    }
-                    work_data.last_batch_time = Date.now();
+                if (result !== -1n) {
+                    work_data.run = false;
+                    console.log('PoW calculation result:', result);
+                    if (resolve) resolve(result);
+                    tech('Found solution ' + result.toString());
+                    resolve = null;
                     return;
                 }
-                work_data.run = false;
-                console.log('PoW calculation result:', result);
-                if (resolve) resolve(result);
-                resolve = null;
+                if (!work_data.run) return;
+                const time_elapsed = BigInt(Date.now() - work_data.start_time);
+                if (time_elapsed > BigInt(work_data.expires * 1000)) {
+                    uifail('Unable to solve the PoW before it expires.\nThis might be caused due to randomness or slow device.\nTrying again may solve the problem.');
+                    return;
+                }
+                // not found, continue search
+                work_data.last_nonce += work_data.BATCH_SIZE;
+                const nonce_expected = 2n ** BigInt(work_data.difficulty);
+                let shouldShowTip = true;
+                if (work_data.last_nonce > (nonce_expected * 2n)) {
+                    hint_text.innerText = 'It takes longer than expected to solve the PoW. To get a new challenge, you can try again.';
+                    hint_retry_btn.hidden = false;
+                } else if (work_data.last_nonce > nonce_expected) {
+                    hint_text.innerText = 'It is taking a bit longer than usual to solve the PoW...';
+                    hint_retry_btn.hidden = false;
+                } else if (work_data.last_nonce > (nonce_expected / 2n)) {
+                    hint_text.innerText = 'It may take a little longer than average, please wait...';
+                } else shouldShowTip = false;
+                hint.hidden = !shouldShowTip;
+                worker.postMessage({
+                    action: 'calculate',
+                    challenge: work_data.challenge,
+                    difficulty: work_data.difficulty,
+                    start_nonce: work_data.last_nonce,
+                    batch_size: work_data.BATCH_SIZE,
+                });
+                const last_batch_time = work_data.last_batch_time;
+                if (last_batch_time) {
+                    const elapsed = Date.now() - last_batch_time;
+                    const speed = +(work_data.BATCH_SIZE.toString()) / elapsed;
+                    status_text.innerText = `Calculating...\nDifficulty: ${work_data.difficulty}, Speed: ${speed.toFixed(2)} kH/s\n${Math.floor(Number(work_data.last_nonce)/1000)}k iters`;
+                }
+                work_data.last_batch_time = Date.now();
+                tech('Time elapsed: ' + time_elapsed.toString() + '\nNonce: ' + work_data.last_nonce.toString()); 
             }
             else {
                 work_data.run = false;
@@ -145,6 +161,7 @@ async function requestChallenge() {
             challenge, expires, difficulty,
             start_time: now, last_batch_time: now,
         };
+        tech('Received challenge');
 
         status_text.innerText = 'Calculating...';
         progress.style.display = 'inline-block';
@@ -175,6 +192,7 @@ async function requestChallenge() {
             work_data.run = true;
             worker.postMessage({ action: 'calculate', challenge, difficulty, start_nonce: work_data.last_nonce, batch_size: work_data.BATCH_SIZE });
         }).then(nonce => {
+            reset_timers();
             if ((Date.now() - work_data.start_time) > (work_data.expires * 1000)) {
                 // expired calculation. re-request challenge.
                 status_text.innerText = 'Challenge has expired. Requesting new challenge...';
@@ -185,7 +203,7 @@ async function requestChallenge() {
             status_image.src = '/web/img/success.webp';
             status_image.classList.remove('r');
             progress.style.display = 'none';
-            reset_timers();
+            hint.hidden = true;
             // submit answer
             work_data.nonce = nonce;
             submitAnswer();
@@ -214,6 +232,7 @@ async function submitAnswer() {
             throw `HTTP ${r.status} ${r.statusText}\n${await r.text()}`;
         }
         const { url, expires } = await r.json();
+        tech(`URL: ${url}\nExpires after: ${expires}`);
         status_text.innerText = `Verified (nonce: ${work_data.nonce})`;
         continue_button.href = url;
         continue_button.hidden = false;
