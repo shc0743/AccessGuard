@@ -1,0 +1,45 @@
+name: Build PoW (C)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            script: ./compile.sh
+            artifact_name: linux-binaries
+          - os: windows-latest
+            script: compile.cmd
+            artifact_name: windows-binaries
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup environment (Linux only)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu
+      
+    - name: Run compilation script
+      run: ${{ matrix.script }}
+      working-directory: pow/c
+      
+    - name: List files for debugging (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: ls -la pow/c/bin/
+    
+    - name: List files for debugging (Windows)
+      if: matrix.os == 'windows-latest'
+      run: dir pow\c\bin
+      
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: pow/c/bin/
