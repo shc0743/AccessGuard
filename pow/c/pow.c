@@ -74,7 +74,6 @@ int main(int argc, char *argv[]) {
     // 预计算挑战字符串的长度
     size_t challenge_len = strlen(challenge);
     
-    // 创建SHA256上下文
     struct sha256_buff ctx;
     uint8_t hash[32];
     unsigned long long nonce = 0;
@@ -86,26 +85,14 @@ int main(int argc, char *argv[]) {
     printf("Difficulty: %d\n", difficulty);
 
     while (1) {
-        // 初始化SHA256上下文
         sha256_init(&ctx);
-        
-        // 更新挑战字符串部分
         sha256_update(&ctx, challenge, challenge_len);
-        
-        // 转换nonce为字符串
         int nonce_len = ulltoa(nonce, nonce_str);
-        
-        // 更新nonce部分
         sha256_update(&ctx, nonce_str, nonce_len);
-        
-        // 完成哈希计算
         sha256_finalize(&ctx);
-        
-        // 读取哈希值
         sha256_read(&ctx, hash);
-        
         if (check_difficulty(hash, difficulty)) {
-            printf("Valid nonce found: %llu\n", nonce);
+            printf("\nValid nonce found: %llu\n", nonce);
             printf("Hash: ");
             for (int i = 0; i < 32; i++) {
                 printf("%02x", hash[i]);
@@ -114,12 +101,9 @@ int main(int argc, char *argv[]) {
             printf("{{%llu}}\n", nonce);
             return 0;
         }
-
         nonce++;
-        
-        // 每100万次迭代打印进度（可选）
-        if (nonce % 1000000 == 0) {
-            printf("Tried %llu nonces...\n", nonce);
+        if (nonce % 5000000 == 0 || nonce == 1) {
+            printf("Tried %llu nonces...\r", nonce); fflush(stdout);
         }
     }
 

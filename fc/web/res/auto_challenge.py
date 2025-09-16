@@ -8,6 +8,9 @@ import json
 import hashlib
 import time
 import sys
+import os
+import platform
+import subprocess
 import urllib.parse
 from typing import Optional, Tuple
 
@@ -23,29 +26,115 @@ class PowChallengeSolver:
         self.session.headers.update({
             'User-Agent': 'AutoChallenger v1.0'
         })
+        self.pow_executable = self._find_pow_executable()
+    
+    def _find_pow_executable(self) -> Optional[str]:
+        """根据平台查找合适的PoW计算程序"""
+        candidates = []
+        normalized_path = os.path.normpath('../c/bin/')
+        current_path = os.environ.get('PATH', '')
+        if normalized_path not in current_path.split(os.pathsep):
+            os.environ['PATH'] = f"{normalized_path}{os.pathsep}{current_path}"
+            
+        system = platform.system().lower()
+        machine = platform.machine().lower()
+        
+        if os.path.exists('/system/bin/getprop') or os.path.exists('/system/build.prop'):
+            return 'pow_android'
+        if system == 'windows':
+            candidates = ['pow.exe', 'pow']
+        elif machine == 'arm64' or machine == 'aarch64':
+            candidates = ['pow_arm64', 'pow']
+        else:
+            candidates = ['pow']
+        
+        for candidate in candidates:
+            if os.path.exists(candidate) and os.access(candidate, os.X_OK):
+                return candidate
+        
+        return None
+
+    def solve_pow_challenge_external(self, challenge: str, difficulty: int) -> Optional[str]:
+        """使用外部C程序解决PoW挑战"""
+        if not self.pow_executable:
+            return None
+        try:
+            cmd = [self.pow_executable, challenge, str(difficulty)]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+            if result.returncode == 0:
+                # 从输出中提取nonce
+                output = result.stdout
+                import re
+                match = re.search(r'\{\{(\d+)\}\}', output)
+                if match:
+                    nonce = match.group(1)
+                    return nonce
+                print(f"Unexpected output format from external PoW calculator: {output}")
+            else:
+                print(f"External PoW calculator failed with return code {result.returncode}")
+                print(f"Stderr: {result.stderr}")
+        except subprocess.TimeoutExpired:
+            print("External PoW calculator timed out after 60 minutes")
+        except FileNotFoundError:
+            print(f"External PoW calculator not found: {self.pow_executable}")
+            self.pow_executable = None
+        except PermissionError:
+            print(f"Permission denied for external PoW calculator: {self.pow_executable}")
+            self.pow_executable = None
+        except Exception as e:
+            print(f"Error running external PoW calculator: {e}")
+            self.pow_executable = None
+        return None
     
     def solve_pow_challenge(self, challenge: str, difficulty: int) -> Optional[str]:
         """
         解决 PoW 挑战：找到满足条件的 nonce
         """
-        print(f"Solving PoW challenge with difficulty {difficulty}...")
+        print(f"Solving PoW challenge with difficulty {difficulty} (binary bits)...")
         start_time = time.time()
+        eres = self.solve_pow_challenge_external(challenge, difficulty)
+        if eres is not None:
+            elapsed = time.time() - start_time
+            print(f"\nFound solution after {elapsed:.2f} seconds and {eres} attempts")
+            return str(eres)
+        print('Warning: External PoW Calculator module not found, falling back to Python implementation (maybe slow)...')
         
-        # 尝试不同 nonce 值直到找到满足条件的
+        # 计算需要检查的完整字节数和剩余位数
+        zero_bytes = difficulty // 8
+        remaining_bits = difficulty % 8
+        
+        # 创建掩码用于检查剩余位
+        if remaining_bits > 0:
+            mask = (0xFF << (8 - remaining_bits)) & 0xFF
+        else:
+            mask = 0
+            
         nonce = 0
-        target_prefix = '0' * difficulty
+        max_nonce = 2**64
         
-        while True:
+        while nonce < max_nonce:
             # 构建输入字符串
             input_str = challenge + str(nonce)
-            # 计算 SHA-256 哈希
-            hash_result = hashlib.sha256(input_str.encode()).hexdigest()
+            # 计算 SHA-256 哈希的二进制表示
+            hash_bytes = hashlib.sha256(input_str.encode()).digest()
             
-            # 检查是否满足难度要求
-            if hash_result.startswith(target_prefix):
+            # 检查完整字节
+            valid = True
+            for i in range(zero_bytes):
+                if hash_bytes[i] != 0:
+                    valid = False
+                    break
+            
+            # 检查剩余位
+            if valid and remaining_bits > 0 and zero_bytes < len(hash_bytes):
+                if (hash_bytes[zero_bytes] & mask) != 0:
+                    valid = False
+            
+            if valid:
                 elapsed = time.time() - start_time
+                hash_hex = hashlib.sha256(input_str.encode()).hexdigest()
                 print(f"\nFound solution after {elapsed:.2f} seconds and {nonce} attempts")
-                print(f"Hash: {hash_result}")
+                print(f"Hash: {hash_hex}")
                 return str(nonce)
             
             nonce += 1
@@ -53,60 +142,69 @@ class PowChallengeSolver:
             # 每 100000 次尝试显示进度
             if nonce % 100000 == 0:
                 print(f"Attempted {nonce} nonces...", end="\r")
+        
+        print("Failed to find solution within reasonable attempts")
+        return None
     
     def process_url(self, url: str) -> Optional[str]:
         """
         处理整个流程：获取挑战、解决挑战、获取文件 URL
         """
         print(f"Requesting challenge from {url}")
-        response = self.session.get(url)
+        try:
+            response = self.session.get(url, timeout=30)
 
-        if response.status_code == 401:
-            # 解析挑战信息
-            try:
-                challenge_data = response.json()
-                challenge_token = challenge_data['challenge']
-                difficulty = challenge_data['difficulty']
+            if response.status_code == 401:
+                # 解析挑战信息
+                try:
+                    challenge_data = response.json()
+                    challenge_token = challenge_data['challenge']
+                    difficulty = challenge_data['difficulty']
 
-                # 解决 PoW 挑战
-                nonce = self.solve_pow_challenge(challenge_token, difficulty)
+                    # 解决 PoW 挑战
+                    nonce = self.solve_pow_challenge(challenge_token, difficulty)
 
-                if nonce:
-                    # 提交解决方案
-                    payload = {
-                        'challenge': challenge_token,
-                        'nonce': nonce
-                    }
+                    if nonce:
+                        # 提交解决方案
+                        payload = {
+                            'challenge': challenge_token,
+                            'nonce': nonce
+                        }
 
-                    print("Submitting solution...")
-                    post_response = self.session.post(
-                        url,
-                        json=payload,
-                        headers={'Content-Type': 'application/json'}
-                    )
+                        print("Submitting solution...")
+                        post_response = self.session.post(
+                            url,
+                            json=payload,
+                            headers={'Content-Type': 'application/json'},
+                            timeout=30
+                        )
 
-                    if post_response.status_code == 200:
-                        # 服务器返回 JSON 格式，需解析 url 字段
-                        try:
-                            result = post_response.json()
-                            file_url = result.get('url')
-                            if file_url:
-                                print(f"Success! File URL: {file_url}")
-                                return file_url
-                            else:
-                                print(f"No 'url' field in response: {result}")
-                        except Exception as e:
-                            print(f"Error parsing JSON response: {e}\nRaw response: {post_response.text}")
+                        if post_response.status_code == 200:
+                            # 服务器返回 JSON 格式，需解析 url 字段
+                            try:
+                                result = post_response.json()
+                                file_url = result.get('url')
+                                if file_url:
+                                    print(f"Success! File URL: {file_url}")
+                                    return file_url
+                                else:
+                                    print(f"No 'url' field in response: {result}")
+                            except Exception as e:
+                                print(f"Error parsing JSON response: {e}\nRaw response: {post_response.text}")
+                        else:
+                            print(f"Failed to submit solution: {post_response.status_code}")
+                            print(f"Response: {post_response.text}")
                     else:
-                        print(f"Failed to submit solution: {post_response.status_code}")
-                        print(f"Response: {post_response.text}")
-                else:
-                    print("Failed to solve the challenge")
-            except Exception as e:
-                print(f"Error processing challenge: {e}")
-        else:
-            print(f"Unexpected response: {response.status_code}")
-            print(f"Response: {response.text}")
+                        print("Failed to solve the challenge")
+                except Exception as e:
+                    print(f"Error processing challenge: {e}")
+            else:
+                print(f"Unexpected response: {response.status_code}")
+                print(f"Response: {response.text}")
+        except requests.exceptions.Timeout:
+            print("Request timed out")
+        except requests.exceptions.RequestException as e:
+            print(f"Request error: {e}")
 
         return None
     
@@ -115,7 +213,7 @@ class PowChallengeSolver:
         下载文件到当前目录
         """
         try:
-            response = self.session.get(url, stream=True)
+            response = self.session.get(url, stream=True, timeout=60)
             
             if response.status_code == 200:
                 # 从 URL 提取文件名（如果没有提供）
@@ -159,3 +257,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

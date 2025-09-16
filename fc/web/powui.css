@@ -37,11 +37,14 @@ main {
     width: 0;
     transition: width 0.25s ease-in;
 }
+a {
+    color: blue;
+    text-decoration: none;
+}
 #continue_button:not([hidden]) {
     display: block;
 }
 #continue_button {
-    text-decoration: none;
     margin-bottom: 1em;
     font-size: large;
     padding: 10px;
@@ -49,4 +52,13 @@ main {
     border-radius: 10px;
     color: blue;
     font-weight: bold;
+}
+#hint {
+    margin-top: 10px;
+}
+main details+details {
+    margin-top: 10px;
+}
+#hint_retry_btn {
+    margin-left: 0.5em;
 }

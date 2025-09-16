@@ -123,7 +123,7 @@ async function PoW_handler(eventObj, context, {
         if (secFetchDest === 'document') {
             // 返回pow.html
             try {
-                const powHtmlPath = path.join(baseDir, 'web/pow.html');
+                const powHtmlPath = path.join(baseDir, 'resource/pow.html');
                 const powHtmlContent = fs.readFileSync(powHtmlPath, 'utf8');
                 
                 return {

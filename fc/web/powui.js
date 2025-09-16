@@ -1,24 +1,28 @@
 const g = new Proxy({}, { get(t, p) { return document.getElementById(p) } });
-const status_image = g.status_image,
-    status_text = g.status,
-    progress = g.progress,
-    progress_inner = g.progress_inner,
+const status_image = g.status_image, status_text = g.status,
+    progress = g.progress, progress_inner = g.progress_inner,
     continue_button = g.continue_button,
+    hint = g.hint, hint_text = g.hint_text, hint_retry_btn = g.hint_retry_btn,
     user = g.user;
 user.addEventListener('toggle', () => globalThis.user_wants_to_read_more = true, { once: true });
 
-const worker = new Worker('/web/pow_worker.js');
+let worker = null;
 let work_data = {};
 let resolve = null;
+const reset_timers = () => {
+    if (window.progress_timer_id) { clearInterval(window.progress_timer_id); delete window.progress_timer_id; }
+    if (window.calculate_expiry_timer_id) { clearInterval(window.calculate_expiry_timer_id); delete window.calculate_expiry_timer_id; }
+}
 const uireset = () => {
-    continue_button.hidden = true;
+    hint.hidden = hint_retry_btn.hidden = continue_button.hidden = true;
     status_image.src = '/web/img/loading.webp';
     status_image.classList.add('r');
     status_image.style.maxWidth = '';
     progress_inner.style.width = '0%';
-    if (window.progress_timer_id) clearInterval(window.progress_timer_id);
+    reset_timers();
 }
-const uifail = () => {
+const uifail = (reason = '') => {
+    if (reason) status_text.innerText = reason;
     status_image.src = '/web/img/error.webp';
     status_image.classList.remove('r');
     status_image.style.maxWidth = '64px';
@@ -32,9 +36,31 @@ const uifail = () => {
         status_text.innerText = 'Requesting challenge...';
         requestChallenge();
     };
-    if (window.progress_timer_id) clearInterval(window.progress_timer_id);
+    reset_timers();
 }
-worker.onmessage = async function (e) {
+const reset_worker = function () {
+    if (worker) worker.terminate();
+    worker = new Worker('/web/pow_worker.js');
+    worker.onmessage = WorkerHandler;
+}
+try {
+    reset_worker();
+    worker.postMessage({ action: 'init' });
+    status_text.innerText = 'Initializing...';
+}
+catch (e) {
+    uifail('Unable to create Web Worker. Please check your Internet connection. ' +
+        'Note that your browser extension may block Web Worker.\n\n' + e);
+}
+
+hint_retry_btn.onclick = () => {
+    reset_worker();
+    worker.postMessage({ action: 'init' });
+    status_text.innerText = 'Initializing...';
+}
+
+
+async function WorkerHandler(e) {
     const { data } = e;
     const { action, success, result } = data;
     switch (action) {
@@ -46,20 +72,30 @@ worker.onmessage = async function (e) {
             }
             else {
                 console.error('Failed to initialize PoW Calculator:', data.error);
-                status_text.innerText = ('Failed to initialize PoW Calculator: ' + data.error);
-                uifail();
+                uifail('Failed to initialize PoW Calculator: ' + data.error);
             }
             break;
         case 'calculate':
             if (success) {
                 if (result === -1n) {
                     if (!work_data.run) return;
-                    if ((Date.now() - work_data.start_time) > (work_data.expires * 1000)) {
-                        status_text.innerText = 'Unexpected Failure!\nMaybe your device is too slow to solve the PoW ' +
-                            'before it expires?\nPlease try to refresh the page.';
-                        uifail();
+                    const time_elapsed = (Date.now() - work_data.start_time);
+                    if (time_elapsed > (work_data.expires * 1000)) {
+                        uifail('Unable to solve the PoW before it expires.\nThis might be caused due to randomness or slow device.\nTrying again may solve the problem.');
                         return;
                     }
+                    const time_expected = 2n ** BigInt(work_data.difficulty);
+                    let shouldShowTip = true;
+                    if (time_elapsed > (time_expected * 2n)) {
+                        hint_text.innerText = 'It takes longer than expected to solve the PoW. To get a new challenge, you can try again.';
+                        hint_retry_btn.hidden = false;
+                    } else if (time_elapsed > time_expected) {
+                        hint_text.innerText = 'It is taking a bit longer than usual to solve the PoW...';
+                        hint_retry_btn.hidden = false;
+                    } else if (time_elapsed > (time_expected / 2n)) {
+                        hint_text.innerText = 'It may take a little longer than average, please wait...';
+                    } else shouldShowTip = false;
+                    hint.hidden = !shouldShowTip;
                     // not found, continue search
                     work_data.last_nonce += work_data.BATCH_SIZE;
                     worker.postMessage({
@@ -86,18 +122,13 @@ worker.onmessage = async function (e) {
             else {
                 work_data.run = false;
                 console.error('Failed to calculate PoW:', data.error);
-                status_text.innerText = ('Failed to calculate PoW: ' + data.error);
-                uifail();
+                uifail('Failed to calculate PoW: ' + data.error);
             }
             break;
         default:
             break;
     }
 }
-worker.postMessage({ action: 'init' });
-
-status_text.innerText = 'Initializing...';
-
 
 async function requestChallenge() {
     try {
@@ -108,14 +139,11 @@ async function requestChallenge() {
         const { challenge, difficulty, expires } = await resp.json();
         const now = Date.now();
         work_data = {
-            BATCH_SIZE: 981207n, // Kiana Kaslana's Birthday
+            BATCH_SIZE: 981207n, // 叱咤月海鱼鱼猫
             run: false,
             last_nonce: 0n,
-            expires: expires,
-            difficulty: difficulty,
-            challenge: challenge,
-            start_time: now,
-            last_batch_time: now,
+            challenge, expires, difficulty,
+            start_time: now, last_batch_time: now,
         };
 
         status_text.innerText = 'Calculating...';
@@ -128,6 +156,19 @@ async function requestChallenge() {
                 delete window.progress_timer_id;
             }
         }, 200);
+        window.calculate_expiry_timer_id = setInterval(() => {
+            if (!((Date.now() - work_data.start_time) > (work_data.expires * 1000))) return;
+            uifail('Unable to solve the PoW before it expires (timed-out).\nThis might be caused due to randomness or slow device.\nTrying again may solve the problem.');
+            reset_worker();
+            continue_button.onclick = e => {
+                e.preventDefault();
+                uireset();
+                continue_button.hidden = true;
+                continue_button.onclick = null;
+                worker.postMessage({ action: 'init' });
+                status_text.innerText = 'Initializing...';
+            };
+        }, 2000);
 
         new Promise((res, rej) => {
             resolve = res;
@@ -144,24 +185,20 @@ async function requestChallenge() {
             status_image.src = '/web/img/success.webp';
             status_image.classList.remove('r');
             progress.style.display = 'none';
-            clearInterval(window.progress_timer_id);
-            delete window.progress_timer_id;
+            reset_timers();
             // submit answer
             work_data.nonce = nonce;
             submitAnswer();
         }).catch(e => {
             console.error('Failed to calculate PoW:', e);
-            status_text.innerText = ('Failed to calculate: ' + e);
-            uifail();
+            uifail('Failed to calculate: ' + e);
         });
     }
     catch (e) {
         console.error('Failed to request challenge:', e);
-        status_text.innerText = ('Failed to request challenge: ' + e);
-        uifail();
+        uifail('Failed to request challenge: ' + e);
     }
 }
-
 async function submitAnswer() {
     if ((Date.now() - work_data.start_time) > (work_data.expires * 1000)) {
         status_text.innerText = 'Challenge has expired. Requesting new challenge...';

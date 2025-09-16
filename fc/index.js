@@ -7,6 +7,7 @@ import geturl from './geturl.js';
 export const handler = async (event, context) => {
     const eventObj = JSON.parse(event);
     { let e = checkConfig(); if (e) return e; }
+    return event;
     // HTTP方法
     const httpMethod = eventObj.requestContext?.http?.method || 'GET';
     // 请求路径
@@ -33,7 +34,7 @@ export const handler = async (event, context) => {
         };
     }
     // 解码路径参数
-    const arg1 = decodeURIComponent(pathParts[0]), arg2 = decodeURIComponent(pathParts[1]);
+    const [arg1, arg2] = pathParts;
     // 解析访问控制参数
     const acParams = parseAccessControlParams(arg1);
 

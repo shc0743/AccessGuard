@@ -13,6 +13,10 @@
         <div class="centered">
             <img id="status_image" class="r" alt="status image" src="/web/img/loading.webp">
             <p id="status">Loading...</p>
+            <div id="hint" hidden>
+                <span id="hint_text"></span>
+                <a id="hint_retry_btn" hidden href="javascript:">Try again</a>
+            </div>
             <div id="progress" role="progressbar" aria-labelledby="status">
                 <div class="bar-inner" id="progress_inner"></div>
             </div>
@@ -33,9 +37,23 @@
                 temporarily disable it for this site.</p>
                 <p>Thanks for your patience!</p>
             </details>
+            <details>
+                <summary>Learn more...</summary>
+                <p>This page is a security check to confirm you're a real person, not an automated program. Please wait a moment while we complete the verification.</p>
+                <p>Here's why we do this:</p>
+                <ul>
+                    <li>We use a light security process that's quick for individuals but makes it difficult for bots to scrape our site in large
+                    numbers.</li>
+                    <li>This helps protect the site from misuse and keeps it running smoothly for everyone.</li>
+                    <li>By verifying your identity, you're helping to keep our site safe and secure for all users.</li>
+                </ul>
+                <p>Please note that some browser extension, like JShelter, may interfere with this process. If you're using such an extension, please
+                temporarily disable it for this site.</p>
+                <p>Thanks for your patience!</p>
+            </details>
         </div>
     </main>
 
-    <script type="module" src="/web/pow.js"></script>
+    <script type="module" src="/web/powui.js"></script>
 </body>
 </html>
