@@ -12,8 +12,9 @@ jobs:
             script: ./compile.sh
             artifact_name: linux-binaries
           - os: windows-latest
-            script: compile.cmd
+            script: ./compile.cmd
             artifact_name: windows-binaries
+    timeout-minutes: 30
     runs-on: ${{ matrix.os }}
     
     steps:
@@ -26,6 +27,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y gcc-aarch64-linux-gnu
       
+    - name: Setup MSVC (Windows only)
+      if: matrix.os == 'windows-latest'
+      uses: microsoft/setup-msbuild@v1.1
+
     - name: Run compilation script
       run: ${{ matrix.script }}
       working-directory: pow/c
