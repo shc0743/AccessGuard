@@ -139,8 +139,7 @@ async function PoW_handler(eventObj, context, {
                 console.error('Error reading pow.html:', error);
                 return {
                     statusCode: 500,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ error: 'Unable to load document' })
+                    body: 'Unable to load document'
                 };
             }
         }
@@ -204,8 +203,7 @@ async function PoW_handler(eventObj, context, {
     } else {
         return {
             statusCode: 405,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: 'Method not allowed' })
+            body: 'Method not allowed'
         };
     }
 }
@@ -214,10 +212,10 @@ async function PoW_handler(eventObj, context, {
 export default async function handle_request(ctx) {
     // 检查是否需要PoW验证
     let powDifficulty = parseInt(ctx.acParams.PoW) || 0;
-    if (!(powDifficulty > 0)) return;
+    if (!(powDifficulty > 0)) return null;
     // 处理 PoW
     // 二进制模式（难度b）/十六进制模式（默认）
-    if (!acParams.PoW.endsWith('b')) powDifficulty *= 4;
+    if (!ctx.acParams.PoW.endsWith('b')) powDifficulty *= 4;
     return await PoW_handler(ctx.event, ctx.context, {
         httpMethod: ctx.method,
         path: ctx.path,

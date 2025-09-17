@@ -2,14 +2,13 @@ import { check_config } from '../../../config.js';
 import { parse_ac_params } from '../../../lib/ac_parser.js';
 
 export default async function handle_request(ctx) {
-    { let e = checkConfig(); if (e) return e; }
+    { let e = check_config(); if (e) return e; }
     const httpMethod = ctx.event.requestContext?.http?.method || 'GET';
     const path = ctx.event.requestContext?.http?.path || '';
     const pathParts = path.split('/').filter(part => part !== '');
     if (pathParts.length !== 2) {
         return {
             statusCode: 400,
-            headers: { 'Content-Type': 'application/json' },
             body: 'Invalid path format. Expected /{arg1}/{arg2}'
         };
     }

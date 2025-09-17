@@ -32,8 +32,7 @@ export async function serve_static_file(requestPath) {
         if (!filePath.startsWith(WEB_ROOT)) {
             return {
                 statusCode: 403,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ error: 'Dangerous request' })
+                body: 'Dangerous request'
             };
         }
         
@@ -55,8 +54,7 @@ export async function serve_static_file(requestPath) {
             } catch (err) {
                 return {
                     statusCode: 404,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ error: 'Index file not found' })
+                    body: 'Index file not found'
                 };
             }
         }
@@ -81,8 +79,7 @@ export async function serve_static_file(requestPath) {
         console.error('Error serving static file:', error);
         return {
             statusCode: 500,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: 'Internal server error' })
+            body: 'Error serving static file'
         };
     }
 }

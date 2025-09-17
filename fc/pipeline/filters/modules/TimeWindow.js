@@ -1,13 +1,6 @@
-export default async function filter_request(acParams, eventObj, context, arg1, arg2) {
+export default async function filter_request(ctx) {
     const now = Date.now();
-
-    if (acParams.NotBefore && (now < parseInt(acParams.NotBefore))) {
-        return false;
-    }
-
-    if (acParams.NotAfter && (now > parseInt(acParams.NotAfter))) {
-        return false;
-    }
-
+    if (ctx.acParams.NotBefore && (now < parseInt(ctx.acParams.NotBefore))) return false;
+    if (ctx.acParams.NotAfter && (now > parseInt(ctx.acParams.NotAfter))) return false;
     return true;
 }
