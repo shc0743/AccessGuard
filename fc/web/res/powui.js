@@ -4,7 +4,7 @@ const status_image = g.status_image, status_text = g.status,
     continue_button = g.continue_button,
     hint = g.hint, hint_text = g.hint_text, hint_retry_btn = g.hint_retry_btn,
     user = g.user, techinfo = g.techinfo;
-user.addEventListener('toggle', () => globalThis.user_wants_to_read_more = true, { once: true });
+window.document.querySelector('main').addEventListener('toggle', () => globalThis.user_wants_to_read_more = true, { once: true });
 
 let worker = null;
 let work_data = {};
@@ -14,13 +14,22 @@ Challenge: ${work_data.challenge}
 Difficulty: ${work_data.difficulty}
 Expires: ${work_data.expires}
 Will expire at: ${new Date(work_data.start_time + work_data.expires * 1000).toLocaleString()}` : '');
+const image_data = [new Promise((resolve, reject) => {
+    const w = (n, i) => fetch(`/web/img/${n}.webp`).then(r => r.blob()).then(b => image_data[i] = URL.createObjectURL(b)).catch(e => console.warn('Unable to load image:', e)), a = [];
+    for (const i of ('loading,success,error'.split(","))) a.push(w(i, a.length + 1));
+    Promise.all(a).then(_ => (image_data[0] = null)).then(resolve).catch(reject);
+}),,,];
+const simg = i => {
+    if (image_data[0]) image_data[0].then(_ => status_image.src = image_data[i]).catch(_ => status_image.src = '/web/img/error.webp');
+    else status_image.src = image_data[i];
+}
 const reset_timers = () => {
     if (window.progress_timer_id) { clearInterval(window.progress_timer_id); delete window.progress_timer_id; }
     if (window.calculate_expiry_timer_id) { clearInterval(window.calculate_expiry_timer_id); delete window.calculate_expiry_timer_id; }
 }
 const uireset = () => {
     hint.hidden = hint_retry_btn.hidden = continue_button.hidden = true;
-    status_image.src = '/web/img/loading.webp';
+    simg(1);
     status_image.classList.add('r');
     status_image.style.maxWidth = '';
     progress_inner.style.width = '0%';
@@ -29,7 +38,7 @@ const uireset = () => {
 }
 const uifail = (reason = '') => {
     if (reason) status_text.innerText = reason;
-    status_image.src = '/web/img/error.webp';
+    simg(3);
     status_image.classList.remove('r');
     status_image.style.maxWidth = '64px';
     continue_button.hidden = false;
@@ -52,6 +61,7 @@ const reset_worker = function () {
     worker.onmessage = WorkerHandler;
     worker.onerror = e => {
         uifail('Failed to create Worker, please refresh page: ' + e);
+        continue_button.hidden = true;
     }
     tech('Worker was created');
 }
@@ -106,16 +116,15 @@ async function WorkerHandler(e) {
                     return;
                 }
                 // not found, continue search
-                work_data.last_nonce += work_data.BATCH_SIZE;
-                const nonce_expected = 2n ** BigInt(work_data.difficulty);
+                work_data.current_nonce += work_data.BATCH_SIZE;
                 let shouldShowTip = true;
-                if (work_data.last_nonce > (nonce_expected * 2n)) {
+                if (work_data.current_nonce > (work_data.expectation * 2n)) {
                     hint_text.innerText = 'It takes longer than expected to solve the PoW. To get a new challenge, you can try again.';
                     hint_retry_btn.hidden = false;
-                } else if (work_data.last_nonce > nonce_expected) {
+                } else if (work_data.current_nonce > work_data.expectation) {
                     hint_text.innerText = 'It is taking a bit longer than usual to solve the PoW...';
                     hint_retry_btn.hidden = false;
-                } else if (work_data.last_nonce > (nonce_expected / 2n)) {
+                } else if (work_data.current_nonce > (work_data.expectation / 2n)) {
                     hint_text.innerText = 'It may take a little longer than average, please wait...';
                 } else shouldShowTip = false;
                 hint.hidden = !shouldShowTip;
@@ -123,17 +132,17 @@ async function WorkerHandler(e) {
                     action: 'calculate',
                     challenge: work_data.challenge,
                     difficulty: work_data.difficulty,
-                    start_nonce: work_data.last_nonce,
+                    start_nonce: work_data.current_nonce,
                     batch_size: work_data.BATCH_SIZE,
                 });
                 const last_batch_time = work_data.last_batch_time;
                 if (last_batch_time) {
                     const elapsed = Date.now() - last_batch_time;
                     const speed = +(work_data.BATCH_SIZE.toString()) / elapsed;
-                    status_text.innerText = `Calculating...\nDifficulty: ${work_data.difficulty}, Speed: ${speed.toFixed(2)} kH/s\n${Math.floor(Number(work_data.last_nonce)/1000)}k iters`;
+                    status_text.innerText = `Calculating...\nDifficulty: ${work_data.difficulty}, Speed: ${speed.toFixed(2)} kH/s\n${Math.floor(Number(work_data.current_nonce)/1000)}k iters`;
                 }
                 work_data.last_batch_time = Date.now();
-                tech('Time elapsed: ' + time_elapsed.toString() + '\nNonce: ' + work_data.last_nonce.toString()); 
+                tech('Time elapsed: ' + time_elapsed.toString() + '\nNonce: ' + work_data.current_nonce.toString()); 
             }
             else {
                 work_data.run = false;
@@ -155,10 +164,10 @@ async function requestChallenge() {
         const { challenge, difficulty, expires } = await resp.json();
         const now = Date.now();
         work_data = {
-            BATCH_SIZE: 981207n, // 叱咤月海鱼鱼猫
+            BATCH_SIZE: 981207n, // 叱咤月海鱼鱼猫 (Kiana Kaslana, Herrscher of Finality)
             run: false,
-            last_nonce: 0n,
-            challenge, expires, difficulty,
+            current_nonce: 0n,
+            challenge, expires, difficulty, expectation: 2n ** BigInt(difficulty),
             start_time: now, last_batch_time: now,
         };
         tech('Received challenge');
@@ -190,7 +199,7 @@ async function requestChallenge() {
         new Promise((res, rej) => {
             resolve = res;
             work_data.run = true;
-            worker.postMessage({ action: 'calculate', challenge, difficulty, start_nonce: work_data.last_nonce, batch_size: work_data.BATCH_SIZE });
+            worker.postMessage({ action: 'calculate', challenge, difficulty, start_nonce: work_data.current_nonce, batch_size: work_data.BATCH_SIZE });
         }).then(nonce => {
             reset_timers();
             if ((Date.now() - work_data.start_time) > (work_data.expires * 1000)) {
@@ -200,7 +209,7 @@ async function requestChallenge() {
                 return;
             }
             status_text.innerText = `Calculation completed (nonce: ${nonce})`;
-            status_image.src = '/web/img/success.webp';
+            simg(2);
             status_image.classList.remove('r');
             progress.style.display = 'none';
             hint.hidden = true;
