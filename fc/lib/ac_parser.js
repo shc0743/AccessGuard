@@ -1,4 +1,4 @@
-export function parseAccessControlParams(arg1 = '') {
+export function parse_ac_params(arg1 = '') {
     const params = {};
     const parts = arg1.split(';');
 

@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
-import geturl from '../../geturl.js';
+import geturl from '../../../lib/geturl.js';
 import {
     MIN_CHALLENGE_EXPIRY, MAX_CHALLENGE_EXPIRY,
     POW_EXPIRY_STRATEGY,
@@ -9,7 +9,7 @@ import {
     CHALLENGE_SECRET,
     SIGNED_URL_EXPIRES,
     baseDir,
-} from '../../config.js';
+} from '../../../config.js';
 
 // 分位系数（指数分布近似）
 const FACTOR_MEDIAN = Math.log(2);         // ~0.6931
@@ -211,17 +211,17 @@ async function PoW_handler(eventObj, context, {
 }
 
 
-export default async function filter_request(acParams, eventObj, context, arg1, arg2) {
-    const httpMethod = eventObj.requestContext?.http?.method || 'GET';
-    const path = eventObj.requestContext?.http?.path || '';
+export default async function handle_request(ctx) {
     // 检查是否需要PoW验证
-    let powDifficulty = parseInt(acParams.PoW) || 0;
-    // 二进制模式（难度b）/十六进制模式（默认）
-    const requiresPoW = powDifficulty > 0;
-    if (!requiresPoW) return;
+    let powDifficulty = parseInt(ctx.acParams.PoW) || 0;
+    if (!(powDifficulty > 0)) return;
     // 处理 PoW
+    // 二进制模式（难度b）/十六进制模式（默认）
     if (!acParams.PoW.endsWith('b')) powDifficulty *= 4;
-    return await PoW_handler(eventObj, context, {
-        httpMethod, path, powDifficulty, arg1, arg2
+    return await PoW_handler(ctx.event, ctx.context, {
+        httpMethod: ctx.method,
+        path: ctx.path,
+        powDifficulty,
+        arg1: ctx.arg1, arg2: ctx.arg2,
     });
 }

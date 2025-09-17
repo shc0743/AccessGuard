@@ -1,21 +1,26 @@
-// static.js
 import path from 'path';
 import fs from 'fs';
 import mime from 'mime-types';
-import { baseDir } from './config.js';
-
-// 静态文件服务配置
+import { baseDir } from '../../../config.js';
 const WEB_ROOT = path.join(baseDir, 'web');
 
-/**
- * 处理静态文件请求
- * @param {string} requestPath 请求路径
- * @returns {Promise<Object>} 响应对象
- */
-export async function serveStaticFile(requestPath) {
-    if (requestPath === '/') {
-        return redirectToWebRoot(requestPath.substring(1));
-    }
+
+export default async function handle_request(ctx) {
+    const path = ctx.event.requestContext?.http?.path;
+    if (is_static_request(path)) return serve_static_file(path);
+    return null;
+}
+
+
+// serve a static file.
+export async function serve_static_file(requestPath) {
+    if (requestPath === '/') return {
+        statusCode: 308,
+        headers: {
+            'Location': '/web/' + requestPath.substring(1),
+            'Cache-Control': 'no-store'
+        }
+    };
     if (requestPath === '/favicon.ico') requestPath = '/web/img' + requestPath;
     requestPath = requestPath.substring(5);
     try {
@@ -65,10 +70,9 @@ export async function serveStaticFile(requestPath) {
         return {
             statusCode: 200,
             headers: {
-                'X-Service-Owner-Favorite-Character': 'Kiana Kaslana (Herrscher of Finality)',
                 'Content-Type': mimeType,
                 'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-eval'; worker-src 'self';",
-                'Cache-Control': 'max-age=60', // 缓存
+                'Cache-Control': 'max-age=30',
             },
             body: content.toString('base64'),
             isBase64Encoded: true,
@@ -83,25 +87,6 @@ export async function serveStaticFile(requestPath) {
     }
 }
 
-/**
- * 检查是否为静态文件请求
- * @param {string} path 请求路径
- * @returns {boolean} 是否为静态文件请求
- */
-export function isStaticRequest(path) {
+export function is_static_request(path) {
     return path.startsWith('/web/') || path === '/' || path === '/favicon.ico';
-}
-
-/**
- * 处理根路径重定向
- * @returns {Object} 重定向响应
- */
-function redirectToWebRoot(path = '') {
-    return {
-        statusCode: 308,
-        headers: {
-            'Location': '/web/' + path,
-            'Cache-Control': 'no-store'
-        }
-    };
 }

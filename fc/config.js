@@ -18,8 +18,11 @@ export const HASHRATE_AVG = 300_000;   // 300 kH/s
 export const ALLOWED_METHODS = ["GET", "HEAD"];
 // 项目根目录
 export const baseDir = path.dirname(fileURLToPath(import.meta.url));
+// 一些彩蛋
+// 设置环境变量：“kiana=kaslana”以激活响应头中的彩蛋
+export const EASTER_EGG = (process.env.kiana === 'kaslana');
 // 确保配置正确
-export function checkConfig() {
+export function check_config() {
     if (!bucket || !region || !baseUrl || !CHALLENGE_SECRET) {
         return {
             statusCode: 500,
