@@ -24,7 +24,7 @@ export async function handle_main_request(event, context) {
     // Handlers can modify the object to 传递 specific data.
     const ctx = { event, context };
     
-    return { ctx, response: get_response(ctx) };
+    return { ctx, response: await get_response(ctx) };
 }
 
 async function get_response(ctx) {
