@@ -130,7 +130,7 @@ async function PoW_handler(eventObj, context, {
                     statusCode: 401,
                     headers: {
                         'Content-Type': 'text/html',
-                        'Content-Security-Policy': "default-src 'self';",
+                        'Content-Security-Policy': "default-src 'self'; img-src 'self' blob:;",
                         'Cache-Control': 'no-store, no-cache, must-revalidate',
                     },
                     body: powHtmlContent
