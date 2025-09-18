@@ -4,6 +4,7 @@ import time
 import os
 import sys
 import re
+import platform
 from statistics import mean, median
 
 # 正则匹配 {{nonce}} 格式
@@ -19,12 +20,11 @@ def run_benchmark(executable, challenge, difficulty, runs=3):
 
         start_time = time.time()
         try:
-            result = subprocess.run(
-                [executable, challenge, str(difficulty)],
-                capture_output=True,
-                text=True,
-                timeout=300
-            )
+            if platform.system().lower() == 'windows':
+                args = ['python.exe', executable, challenge, str(difficulty)]
+            else:
+                args = [executable, challenge, str(difficulty)]
+            result = subprocess.run(args, capture_output=True, text=True, timeout=300)
             end_time = time.time()
 
             if result.returncode == 0:

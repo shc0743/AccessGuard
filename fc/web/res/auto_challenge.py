@@ -58,10 +58,22 @@ class PowChallengeSolver:
             return None
         try:
             cmd = [self.pow_executable, challenge, str(difficulty)]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
-            if result.returncode == 0:
-                # 从输出中提取nonce
-                output = result.stdout
+            
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, universal_newlines=True)
+            
+            output_lines = []
+            while True:
+                line = process.stdout.readline()
+                if not line and process.poll() is not None:
+                    break
+                if line:
+                    print(line, end='')
+                    output_lines.append(line)
+            
+            returncode = process.wait()
+            
+            output = ''.join(output_lines)
+            if returncode == 0:
                 import re
                 match = re.search(r'\{\{(\d+)\}\}', output)
                 if match:
@@ -69,21 +81,18 @@ class PowChallengeSolver:
                     return nonce
                 print(f"Unexpected output format from external PoW calculator: {output}")
             else:
-                print(f"External PoW calculator failed with return code {result.returncode}")
-                print(f"Stderr: {result.stderr}")
+                print(f"External PoW calculator failed with return code {returncode}")
+                
         except subprocess.TimeoutExpired:
             print("External PoW calculator timed out after 60 minutes")
         except FileNotFoundError:
             print(f"External PoW calculator not found: {self.pow_executable}")
             self.pow_executable = None
-        except PermissionError:
-            print(f"Permission denied for external PoW calculator: {self.pow_executable}")
-            self.pow_executable = None
         except Exception as e:
             print(f"Error running external PoW calculator: {e}")
             self.pow_executable = None
         return None
-    
+        
     def solve_pow_challenge(self, challenge: str, difficulty: int) -> Optional[str]:
         print(f"Solving PoW challenge with difficulty {difficulty} (binary bits)...")
         start_time = time.time()

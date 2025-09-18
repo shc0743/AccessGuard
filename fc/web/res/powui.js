@@ -4,7 +4,7 @@ const status_image = g.status_image, status_text = g.status,
     continue_button = g.continue_button,
     hint = g.hint, hint_text = g.hint_text, hint_retry_btn = g.hint_retry_btn,
     user = g.user, techinfo = g.techinfo;
-window.document.querySelector('main').addEventListener('toggle', () => globalThis.user_wants_to_read_more = true, { once: true });
+window.document.querySelector('main').addEventListener('toggle', () => globalThis.user_wants_to_read_more = true, { once: true, capture: true });
 
 let worker = null;
 let work_data = {};
