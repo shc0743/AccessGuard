@@ -7,7 +7,7 @@ const WEB_ROOT = path.join(baseDir, 'web');
 
 export default async function handle_request(ctx) {
     const path = ctx.event.requestContext?.http?.path;
-    if (is_static_request(path)) return serve_static_file(path);
+    if (is_static_request(path)) return await serve_static_file(path);
     return null;
 }
 
